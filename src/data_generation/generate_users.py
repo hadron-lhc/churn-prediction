@@ -1,7 +1,9 @@
 from personas import PERSONAS
 from users import SimulatedUser
+from dataclasses import asdict
 
 import random
+import pandas as pd
 
 PERSONA_DISTRIBUTION = {
     "casual_buyer": 0.40,
@@ -110,13 +112,37 @@ def generate_users(num_users=1000):
     return users
 
 
+def export_user(user):
+    data = asdict(user)
+    delete_keys = [
+        "persona",
+        "churn_risk",
+        "reactivation_chance",
+        "current_state",
+        "purchase_rate",
+        "login_rate",
+    ]
+    for key in delete_keys:
+        del data[key]
+    return data
+
+
 def main():
     personas = list(PERSONA_DISTRIBUTION.keys())
     weights = list(PERSONA_DISTRIBUTION.values())
+    filename = "data/simulated_users.csv"
 
     random.choices(personas, weights=weights, k=1)
 
     users = generate_users(1000)
+    clean_users = []
+    for user in users:
+        clean_user = export_user(user)
+        clean_users.append(clean_user)
+
+    df = pd.DataFrame(clean_users)
+    df.to_csv(filename, index=False)
+
     for user in users[:5]:  # print first 5 users
         print(user)
 
