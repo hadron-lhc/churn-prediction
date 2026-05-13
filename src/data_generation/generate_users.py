@@ -115,12 +115,13 @@ def generate_users(num_users=1000):
 def export_user(user):
     data = asdict(user)
     delete_keys = [
-        "persona",
         "churn_risk",
         "reactivation_chance",
-        "current_state",
         "purchase_rate",
-        "login_rate",
+        "last_order_date",
+        "total_orders",
+        "total_sessions",
+        "last_session_date",
     ]
     for key in delete_keys:
         del data[key]
