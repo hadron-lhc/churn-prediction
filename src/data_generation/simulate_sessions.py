@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 import datetime
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from paths import DATA_DIR
 
 
 STATE_MULTIPLIERS = {
@@ -135,7 +140,7 @@ def create_sessions(active_users, actual_date, session_start_id):
 
 
 def main():
-    users = pd.read_csv("./data/simulated_users.csv")
+    users = pd.read_csv(DATA_DIR / "raw/simulated_users.csv")
 
     num_users = len(users)
 
@@ -191,7 +196,7 @@ def main():
     )
 
     sessions_df.to_csv(
-        "./data/sessions.csv",
+        DATA_DIR / "raw/sessions.csv",
         index=False,
     )
 

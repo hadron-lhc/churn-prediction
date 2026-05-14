@@ -1,5 +1,10 @@
 import pandas as pd
 import numpy as np
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from paths import DATA_DIR
 
 
 def get_order_value(sessions):
@@ -56,15 +61,15 @@ def create_orders(sessions):
 
 
 def main():
-    sessions = pd.read_csv("./data/sessions.csv")
-    users = pd.read_csv("./data/simulated_users_results.csv")
+    sessions = pd.read_csv(DATA_DIR / "raw/sessions.csv")
+    users = pd.read_csv(DATA_DIR / "raw/simulated_users.csv")
 
     valid_sessions = sessions[sessions["converted"]]
     orders_base = valid_sessions.merge(users, on="user_id", how="left")
 
     orders = create_orders(orders_base)
 
-    orders.to_csv("./data/orders.csv", index=False)
+    orders.to_csv(DATA_DIR / "raw/orders.csv", index=False)
 
     print("Ordenes guardadas")
 

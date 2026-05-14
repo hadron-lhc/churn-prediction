@@ -1,6 +1,11 @@
-from personas import PERSONAS
+from config import PERSONAS
 from users import SimulatedUser
 from dataclasses import asdict
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from paths import DATA_DIR
 
 import random
 import pandas as pd
@@ -18,8 +23,7 @@ STATE_DISTRIBUTION = {
     "active": 0.70,
     "inactive": 0.10,
     "cooling_down": 0.15,
-    "reactivated": 0.04,
-    "high_intent": 0.01,
+    "reactivated": 0.05,
 }
 
 
@@ -117,7 +121,6 @@ def export_user(user):
     delete_keys = [
         "churn_risk",
         "reactivation_chance",
-        "purchase_rate",
         "last_order_date",
         "total_orders",
         "total_sessions",
@@ -131,7 +134,7 @@ def export_user(user):
 def main():
     personas = list(PERSONA_DISTRIBUTION.keys())
     weights = list(PERSONA_DISTRIBUTION.values())
-    filename = "data/simulated_users.csv"
+    filename = DATA_DIR / "raw/simulated_users.csv"
 
     random.choices(personas, weights=weights, k=1)
 
