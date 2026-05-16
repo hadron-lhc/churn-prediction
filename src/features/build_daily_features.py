@@ -38,55 +38,42 @@ def orders_to_merge(df):
     return purchase_today
 
 
-def purchases_last_30_days(df):
+def purchases_last_K_days(df, k):
     """
-    Cantidad de compras en los ultimos 30 dias
+    Cantidad de compras en los ultimos k dias
     por cada usuario y cada dia
     """
     df = df.copy()
 
-    df["order_date"] = pd.to_datetime(df["order_date"])
-    df = df[["user_id", "order_date"]]
+    days = k + "D"
 
-    df = df.rename(columns={"order_date": "snapshot_date"})
-    df = df.sort_values(["user_id", "snapshot_date"])
-
-    df["purchase"] = 1
-
-    purchase_last_30_days = (
+    purchase_last_K_days = (
         df.groupby("user_id")
-        .rolling(window="30D", on="snapshot_date")["purchase"]
+        .rolling(window=days, on="snapshot_date")["purchase_today"]
         .sum()
-        .reset_index(name="purchase_last_30_days")
+        .reset_index(name="purchase_last_" + k + "_days")
     )
 
-    return purchase_last_30_days
+    return purchase_last_K_days
 
 
-def sessions_last_7_days(df):
+def sessions_last_K_days(df, k):
     """
     Cantidad de sesiones
     por usuario los ultimos
-    7 dias
+    K dias
     """
     df = df.copy()
+    days = k + "D"
 
-    df["session_date"] = pd.to_datetime(df["session_date"])
-    df = df[["user_id", "session_date"]]
-
-    df = df.rename(columns={"session_date": "snapshot_date"})
-    df = df.sort_values(["user_id", "snapshot_date"])
-
-    df["session"] = 1
-
-    session_last_7_days = (
+    session_last_K_days = (
         df.groupby("user_id")
-        .rolling(window="7D", on="snapshot_date")["session"]
+        .rolling(window=days, on="snapshot_date")["active_today"]
         .sum()
-        .reset_index(name="session_last_7_days")
+        .reset_index(name="session_last_" + k + "_days")
     )
 
-    return session_last_7_days
+    return session_last_K_days
 
 
 def main():
@@ -97,24 +84,30 @@ def main():
     df_users = users[["user_id"]]
 
     date_range = pd.date_range(start="2024-01-01", end="2026-01-01")
-
     df_dates = pd.DataFrame(date_range, columns=["snapshot_date"])
-
     df_daily = pd.merge(df_users, df_dates, how="cross")
 
     auxiliar_sessions = sessions_to_merge(sessions)
-
     auxiliar_orders = orders_to_merge(orders)
 
-    df_daily = df_daily.merge(auxiliar_sessions, how="left").fillna(0)
+    df_daily = df_daily.merge(auxiliar_sessions, how="left")
+    df_daily = df_daily.merge(auxiliar_orders, how="left")
 
-    df_daily = df_daily.merge(auxiliar_orders, how="left").fillna(0)
+    df_daily["active_today"] = df_daily["active_today"].fillna(0)
+    df_daily["purchase_today"] = df_daily["purchase_today"].fillna(0)
 
-    purchase_last_30_days = purchases_last_30_days(orders)
-    df_daily = df_daily.merge(purchase_last_30_days, how="left").fillna(0)
+    purchase_last_30_days = purchases_last_K_days(df_daily, "30")
+    session_last_7_days = sessions_last_K_days(df_daily, "7")
+    session_last_30_days = sessions_last_K_days(df_daily, "30")
 
-    session_last_7_days = sessions_last_7_days(sessions)
-    df_daily = df_daily.merge(session_last_7_days, how="left").fillna(0)
+    df_daily = (
+        df_daily.merge(purchase_last_30_days, how="left")
+        .merge(session_last_7_days, how="left")
+        .merge(session_last_30_days, how="left")
+        .fillna(0)
+    )
+
+    df_daily = df_daily.sort_values(["user_id", "snapshot_date"])
 
     print(df_daily)
 
