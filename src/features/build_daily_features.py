@@ -76,11 +76,38 @@ def sessions_last_K_days(df, k):
     return session_last_K_days
 
 
-def main():
-    users = pd.read_csv(DATA_DIR / "raw/simulated_users.csv")
-    sessions = pd.read_csv(DATA_DIR / "raw/sessions.csv")
-    orders = pd.read_csv(DATA_DIR / "raw/orders.csv")
+def days_since_last_purchase_func(df):
+    df = df.copy()
 
+    df["last_purchase_date"] = df["snapshot_date"].where(df["purchase_today"] > 0)
+    df = df.sort_values(["user_id", "snapshot_date"])
+    df["last_purchase_date"] = df.groupby("user_id")["last_purchase_date"].ffill()
+    df["days_since_last_purchase"] = (
+        df["snapshot_date"] - df["last_purchase_date"]
+    ).dt.days
+
+    df["days_since_last_purchase"] = df["days_since_last_purchase"].fillna(-1)
+
+    return df[["user_id", "snapshot_date", "days_since_last_purchase"]]
+
+
+def days_since_last_session_func(df):
+    df = df.copy()
+
+    df["last_session_date"] = df["snapshot_date"].where(df["active_today"] > 0)
+    df = df.sort_values(["user_id", "snapshot_date"])
+    df["last_session_date"] = df.groupby("user_id")["last_session_date"].ffill()
+
+    df["days_since_last_session"] = (
+        df["snapshot_date"] - df["last_session_date"]
+    ).dt.days
+
+    df["days_since_last_session"] = df["days_since_last_session"].fillna(-1)
+
+    return df[["user_id", "snapshot_date", "days_since_last_session"]]
+
+
+def get_new_df(users, sessions, orders):
     df_users = users[["user_id"]]
 
     date_range = pd.date_range(start="2024-01-01", end="2026-01-01")
@@ -93,6 +120,10 @@ def main():
     df_daily = df_daily.merge(auxiliar_sessions, how="left")
     df_daily = df_daily.merge(auxiliar_orders, how="left")
 
+    return df_daily
+
+
+def add_features(df_daily):
     df_daily["active_today"] = df_daily["active_today"].fillna(0)
     df_daily["purchase_today"] = df_daily["purchase_today"].fillna(0)
 
@@ -100,14 +131,30 @@ def main():
     session_last_7_days = sessions_last_K_days(df_daily, "7")
     session_last_30_days = sessions_last_K_days(df_daily, "30")
 
+    days_since_last_purchase = days_since_last_purchase_func(df_daily)
+    days_since_last_session = days_since_last_session_func(df_daily)
+
     df_daily = (
         df_daily.merge(purchase_last_30_days, how="left")
         .merge(session_last_7_days, how="left")
         .merge(session_last_30_days, how="left")
+        .merge(days_since_last_purchase, how="left")
+        .merge(days_since_last_session, how="left")
         .fillna(0)
     )
 
     df_daily = df_daily.sort_values(["user_id", "snapshot_date"])
+
+    return df_daily
+
+
+def main():
+    users = pd.read_csv(DATA_DIR / "raw/simulated_users.csv")
+    sessions = pd.read_csv(DATA_DIR / "raw/sessions.csv")
+    orders = pd.read_csv(DATA_DIR / "raw/orders.csv")
+
+    df_daily = get_new_df(users, sessions, orders)
+    df_daily = add_features(df_daily)
 
     print(df_daily)
 
