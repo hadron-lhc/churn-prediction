@@ -63,6 +63,32 @@ def purchases_last_30_days(df):
     return purchase_last_30_days
 
 
+def sessions_last_7_days(df):
+    """
+    Cantidad de sesiones
+    por usuario los ultimos
+    7 dias
+    """
+    df = df.copy()
+
+    df["session_date"] = pd.to_datetime(df["session_date"])
+    df = df[["user_id", "session_date"]]
+
+    df = df.rename(columns={"session_date": "snapshot_date"})
+    df = df.sort_values(["user_id", "snapshot_date"])
+
+    df["session"] = 1
+
+    session_last_7_days = (
+        df.groupby("user_id")
+        .rolling(window="7D", on="snapshot_date")["session"]
+        .sum()
+        .reset_index(name="session_last_7_days")
+    )
+
+    return session_last_7_days
+
+
 def main():
     users = pd.read_csv(DATA_DIR / "raw/simulated_users.csv")
     sessions = pd.read_csv(DATA_DIR / "raw/sessions.csv")
@@ -87,7 +113,10 @@ def main():
     purchase_last_30_days = purchases_last_30_days(orders)
     df_daily = df_daily.merge(purchase_last_30_days, how="left").fillna(0)
 
-    print(df_daily.head())
+    session_last_7_days = sessions_last_7_days(sessions)
+    df_daily = df_daily.merge(session_last_7_days, how="left").fillna(0)
+
+    print(df_daily)
 
 
 if __name__ == "__main__":
