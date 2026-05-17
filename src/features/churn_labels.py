@@ -10,22 +10,23 @@ def build_churn_target(df, horizon_days=30):
     df = df.copy()
     df["snapshot_date"] = pd.to_datetime(df["snapshot_date"])
 
-    df = df.sort_values(by=["user_id", "snapshot_date"])
+    df = df.sort_values(["user_id", "snapshot_date"])
 
-    df_inverted = df.iloc[::-1]
-
-    future_sum = (
-        df_inverted.groupby("user_id")
-        .rolling(window=f"{horizon_days}D", on="snapshot_date")["purchase_today"]
-        .sum()
-        .reset_index(drop=True)
+    future_sum = df.groupby("user_id", group_keys=False).apply(
+        lambda x: (
+            x.iloc[::-1]
+            .rolling(window=f"{horizon_days}D", on="snapshot_date")["purchase_today"]
+            .sum()
+            .iloc[::-1]
+        ),
+        include_groups=False,
     )
 
     future_sum = future_sum.iloc[::-1].values
 
     future_sum = future_sum - df["purchase_today"]
 
-    df["target_churn_30d"] = (future_sum.iloc[::-1] == 0).astype(int)
+    df["target_churn_30d"] = (future_sum == 0).astype(int)
 
     return df
 
