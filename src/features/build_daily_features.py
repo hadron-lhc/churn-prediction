@@ -122,6 +122,13 @@ def purchase_per_session_30d(df):
     return df
 
 
+def purchase_tend(df):
+    df = df.copy()
+    df["purchase_tend"] = df["purchase_last_7_days"] - (df["purchase_last_30_days"] / 4)
+
+    return df
+
+
 def get_new_df(users, sessions, orders):
     df_users = users[["user_id"]]
 
@@ -156,6 +163,7 @@ def add_features(df_daily):
     df_daily = purchases_last_K_days(df_daily, 7)
     df_daily = purchases_last_K_days(df_daily, 30)
 
+    df_daily = sessions_last_K_days(df_daily, 7)
     df_daily = sessions_last_K_days(df_daily, 30)
 
     df_daily = days_since_last_purchase_func(df_daily)
@@ -165,9 +173,9 @@ def add_features(df_daily):
 
     df_daily = purchase_per_session_30d(df_daily)
 
-    df_daily = df_daily.sort_values(["user_id", "snapshot_date"])
+    df_daily = purchase_tend(df_daily)
 
-    df_daily = df_daily.drop(columns=["purchase_last_7_days"])
+    df_daily = df_daily.sort_values(["user_id", "snapshot_date"])
 
     return df_daily
 
